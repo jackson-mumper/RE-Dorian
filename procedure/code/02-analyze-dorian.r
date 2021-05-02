@@ -30,23 +30,23 @@ library(here)
 
 #create temporal data frame & graph it
 
-dorian <- ts_data(dorian, by="hours")
-ts_plot(dorian, by="hours")
+dorianByHour <- ts_data(dorian3, by="hours")
+ts_plot(dorian3, by="hours")
 
 ############# NETWORK ANALYSIS ############# 
 
 #this is here as an example. change to the dorian3 data you processed in the previous script to try...
 
 #create network data frame. Other options for 'edges' in the network include mention, retweet, and reply
-dorianNetwork <- network_graph(dorian, c("quote"))
+dorianNetwork <- network_graph(dorian3, c("quote"))
 
-plot.igraph(winterTweetNetwork)
+plot.igraph(dorianNetwork)
 #Please, this is incredibly ugly... if you finish early return to this function and see if we can modify its parameters to improve aesthetics
 
 ############# TEXT / CONTEXTUAL ANALYSIS ############# 
 
 #remove urls, fancy formatting, etc. in other words, clean the text content
-dorianText = dorian %>% select(text) %>% plain_tweets()
+dorianText = dorian3 %>% select(text) %>% plain_tweets()
 
 #parse out words from tweet text
 dorianWords = dorianText %>% unnest_tokens(word, text)
@@ -101,7 +101,7 @@ dorianWordPairs %>%
 
 #first, sign up for a Census API here: https://api.census.gov/data/key_signup.html
 #replace the key text 'yourkey' with your own key!
-counties <- get_estimates("county",product="population",output="wide",geometry=TRUE,keep_geo_vars=TRUE, key="1fb2d48d1ae3f73a19d620f258ec9f823ad09b25")
+counties <- get_estimates("county",product="population",output="wide",geometry=TRUE,keep_geo_vars=TRUE, key="")
 
 #select only the states you want, with FIPS state codes in quotes in the c() list
 #look up fips codes here: https://en.wikipedia.org/wiki/Federal_Information_Processing_Standard_state_code 
@@ -127,7 +127,7 @@ ggplot() +
 #Connectign to Postgres
 #Create a con database connection with the dbConnect function.
 #Change the user and password to your own!
-con <- dbConnect(RPostgres::Postgres(), dbname='dsm', host='artemis', user='user', password='password') 
+con <- dbConnect(RPostgres::Postgres(), dbname='dsm', host='artemis', user='jackson', password='') 
 
 #list the database tables, to check if the database is working
 dbListTables(con) 
@@ -139,11 +139,14 @@ doriansql <- select(dorian,c("user_id","status_id","text","lat","lng"),starts_wi
 dbWriteTable(con,'dorian',doriansql, overwrite=TRUE)
 
 # try also writing the november tweet data to the database! Add code below:
+novembersql <- select(november,c("user_id","status_id","text","lat","lng",starts_with("place")))
+dbWriteTable(con,'november',novembersql, overwrite=TRUE)
+
 
 # SQL to add geometry column of type point and crs NAD 1983: 
 # SELECT AddGeometryColumn ('schemaname','dorian','geom',4269,'POINT',2, false);
 # SQL to calculate geometry:
-# UPDATE dorian set geom = st_transform(st_makepoint(lng,lat),4326,4269);
+# UPDATE dorian set geom = st_transform(st_setsrid(st_makepoint(lng,lat),4326),4269);
 
 #make all lower-case names for counties, because PostGreSQL is not into capitalization
 
